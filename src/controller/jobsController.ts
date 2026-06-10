@@ -1,7 +1,12 @@
 import { NextFunction, Request, Response } from 'express'
 import { z } from 'zod'
 import ClientError from '../utils/ClientError'
-import { createJobSchema, listJobsQuerySchema, updateJobStatusSchema } from '../models/job.model'
+import {
+  assignJobSchema,
+  createJobSchema,
+  listJobsQuerySchema,
+  updateJobStatusSchema
+} from '../models/job.model'
 import { jobsService } from '../services/jobsService'
 
 export const createJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -68,6 +73,53 @@ export const updateJobStatus = async (
       return
     }
 
+    next(error)
+  }
+}
+
+export const assignJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      throw new ClientError('Job id is required', 400)
+    }
+
+    const payload = assignJobSchema.parse(req.body)
+    const job = await jobsService.assignJob(id, {
+      userId: payload.user_id,
+      roleType: payload.role_type
+    })
+
+    res.status(200).json({
+      message: 'Job assigned successfully',
+      data: job
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      next(new ClientError('Validation error', 400, error.flatten()))
+      return
+    }
+
+    next(error)
+  }
+}
+
+export const getJobPayment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      throw new ClientError('Job id is required', 400)
+    }
+
+    const payment = await jobsService.getJobPayment(id)
+
+    res.status(200).json({
+      message: 'Payment calculated successfully',
+      data: payment
+    })
+  } catch (error) {
     next(error)
   }
 }

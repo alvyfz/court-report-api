@@ -1,7 +1,8 @@
 import cors from 'cors'
 import express, { NextFunction, Request, Response } from 'express'
-import jobsRoutes from './routes/jobsRoutes'
 import errorHandler from './middleware/errorHandler'
+import jobsRoutes from './routes/jobsRoutes'
+import usersRoutes from './routes/usersRoutes'
 
 const app = express()
 
@@ -13,6 +14,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 })
 
 app.use('/api/jobs', jobsRoutes)
+app.use('/api/users', usersRoutes)
 
 app.use((error: unknown, req: Request, res: Response, next: NextFunction) => {
   errorHandler(error, req, res, next)

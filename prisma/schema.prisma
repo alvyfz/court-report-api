@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  REPORTER
+  EDITOR
+}
+
+enum JobLocationType {
+  PHYSICAL
+  REMOTE
+}
+
+enum JobStatus {
+  NEW
+  ASSIGNED
+  TRANSCRIBED
+  REVIEWED
+  COMPLETED
+}
+
+model User {
+  id          String @id @default(uuid()) @db.Uuid
+  name        String
+  role        Role
+  city        String?
+  isAvailable Boolean @default(true) @map("is_available")
+
+  reporterJobs Job[] @relation("ReporterJobs")
+  editorJobs   Job[] @relation("EditorJobs")
+
+  @@map("users")
+  @@index([role, isAvailable])
+  @@index([city])
+}
+
+model Job {
+  id              String          @id @default(uuid()) @db.Uuid
+  caseName        String          @map("case_name")
+  durationMinutes Int             @map("duration_minutes")
+  locationType    JobLocationType @map("location_type")
+  city            String?
+  status          JobStatus       @default(NEW)
+  reporterId      String?         @map("reporter_id") @db.Uuid
+  editorId        String?         @map("editor_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  reporter User? @relation("ReporterJobs", fields: [reporterId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  editor   User? @relation("EditorJobs", fields: [editorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("jobs")
+  @@index([status])
+  @@index([locationType, city])
+  @@index([reporterId])
+  @@index([editorId])
+  @@index([createdAt])
+}

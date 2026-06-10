@@ -1,22 +1,31 @@
 {
-  "name": "job-management-api-template",
-  "version": "0.1.0",
-  "description": "Clean starter API for job management built with Express, TypeScript, and Appwrite.",
+  "name": "court-report-job-api",
+  "version": "1.0.0",
+  "description": "Court report job management API powered by PostgreSQL and Prisma.",
   "main": "dist/index.js",
   "type": "commonjs",
   "license": "ISC",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --watch prisma --ext ts,prisma --exec ts-node src/index.ts",
     "test": "jest --runInBand",
-    "vercel-build": "tsc"
+    "vercel-build": "prisma generate && tsc",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "migrate:appwrite:export": "ts-node src/scripts/exportAppwriteData.ts",
+    "migrate:appwrite:import": "ts-node src/scripts/importToPostgres.ts"
   },
   "dependencies": {
+    "@prisma/client": "6.16.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "node-appwrite": "^15.0.0",
+    "node-appwrite": "^26.2.0",
+    "pg": "^8.21.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -27,6 +36,7 @@
     "@types/supertest": "^6.0.3",
     "jest": "^30.3.0",
     "nodemon": "^3.1.9",
+    "prisma": "6.16.2",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
