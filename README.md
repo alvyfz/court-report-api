@@ -1,10 +1,44 @@
 # Court Report Job API
 
-Backend API untuk manajemen pekerjaan court reporting menggunakan Express, PostgreSQL, dan Prisma.
+Backend API for court reporting job management using Express, PostgreSQL, and Prisma.
 
-## Skema PostgreSQL
+## Solution Overview
+
+- Manages `jobs` and `users` (Reporter/Editor) with Zod validation and business rules in the service layer.
+- Enforces sequential workflow status: `NEW -> ASSIGNED -> TRANSCRIBED -> REVIEWED -> COMPLETED`.
+- Supports personnel assignment (including city rules for `PHYSICAL` jobs) and payout calculation via a payment endpoint.
+
+## Quickstart
+
+1. Install dependencies:
+   ```bash
+   yarn install
+   ```
+2. Create environment file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Fill in `DATABASE_URL` (PostgreSQL).
+4. Generate Prisma Client and run migrations:
+   ```bash
+   yarn prisma:generate
+   yarn prisma:migrate:dev --name init
+   ```
+5. Start the server:
+   ```bash
+   yarn dev
+   ```
+
+### Key Configuration
+
+- Server port: `PORT` (default `3000`)
+- Editor flat fee: `EDITOR_FLAT_FEE` (default `50000`)
+- Health check: `GET /api/health`
+
+## PostgreSQL Schema
 
 ### users
+
 - `id` UUID primary key
 - `name` string
 - `role` enum `REPORTER | EDITOR`
@@ -12,37 +46,43 @@ Backend API untuk manajemen pekerjaan court reporting menggunakan Express, Postg
 - `is_available` boolean
 
 ### jobs
+
 - `id` UUID primary key
 - `case_name` string
 - `duration_minutes` integer
 - `location_type` enum `PHYSICAL | REMOTE`
-- `city` string nullable, wajib untuk `PHYSICAL`
+- `city` string nullable, required for `PHYSICAL`
 - `status` enum `NEW | ASSIGNED | TRANSCRIBED | REVIEWED | COMPLETED`
 - `reporter_id` UUID nullable, foreign key ke `users.id`
 - `editor_id` UUID nullable, foreign key ke `users.id`
 - `created_at` timestamp
 
-## Endpoint API
+## API Endpoints
 
 ### Job Management
+
 - `POST /api/jobs`
 - `GET /api/jobs`
 - `PATCH /api/jobs/:id/status`
 
 ### Assignment
+
 - `GET /api/users?role=REPORTER&available=true&job_id=<job_uuid>`
 - `POST /api/users`
 - `POST /api/jobs/:id/assign`
 
 ### Payment
+
 - `GET /api/jobs/:id/payment`
 
 ### Utility
+
 - `GET /api/health`
 
-## Contoh Payload
+## Example Payloads
 
-### Buat job
+### Create a job
+
 ```json
 {
   "caseName": "State vs Doe",
@@ -53,7 +93,8 @@ Backend API untuk manajemen pekerjaan court reporting menggunakan Express, Postg
 }
 ```
 
-### Assign user ke job
+### Assign a user to a job
+
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440010",
@@ -61,7 +102,8 @@ Backend API untuk manajemen pekerjaan court reporting menggunakan Express, Postg
 }
 ```
 
-### Buat user
+### Create a user
+
 ```json
 {
   "name": "Ayu",
@@ -71,56 +113,49 @@ Backend API untuk manajemen pekerjaan court reporting menggunakan Express, Postg
 }
 ```
 
-### Update status job
+### Update job status
+
 ```json
 {
   "status": "ASSIGNED"
 }
 ```
 
-## Aturan Bisnis
-- Job `PHYSICAL` wajib memiliki `city`.
-- Job `REMOTE` tidak boleh memiliki `city`.
-- Reporter yang di-assign harus ber-role `REPORTER`, tersedia, dan untuk job `PHYSICAL` harus berasal dari kota yang sama.
-- Editor yang di-assign harus ber-role `EDITOR` dan tersedia.
-- Transisi status harus berurutan: `NEW -> ASSIGNED -> TRANSCRIBED -> REVIEWED -> COMPLETED`.
-- Job tidak boleh masuk ke `ASSIGNED` jika `reporter_id` belum terisi.
-- Endpoint daftar reporter akan mengurutkan reporter satu kota di urutan teratas bila `job_id` mengarah ke job `PHYSICAL`.
-- Payment dihitung dengan rumus:
+## Business Rules
+
+- `PHYSICAL` jobs must have `city`.
+- `REMOTE` jobs must not have `city`.
+- Assigned reporters must have role `REPORTER`, be available, and for `PHYSICAL` jobs must match the job city.
+- Assigned editors must have role `EDITOR` and be available.
+- Status transitions must be sequential: `NEW -> ASSIGNED -> TRANSCRIBED -> REVIEWED -> COMPLETED`.
+- A job cannot transition to `ASSIGNED` unless `reporter_id` is already set.
+- Reporter listing sorts same-city reporters to the top when `job_id` points to a `PHYSICAL` job.
+- Payment formula:
   - `reporter_payout = duration_minutes * 2000`
   - `editor_payout = EDITOR_FLAT_FEE`
   - `total_cost = reporter_payout + editor_payout`
 
-## Menjalankan Proyek
-1. Install dependensi:
+## Running Locally
+
+1. Install dependencies:
    ```bash
    yarn install
    ```
-2. Salin environment:
+2. Copy environment:
    ```bash
    cp .env.example .env
    ```
-3. Siapkan PostgreSQL lokal atau remote dan isi `DATABASE_URL`.
+3. Prepare PostgreSQL and set `DATABASE_URL`.
 4. Generate Prisma Client:
    ```bash
    yarn prisma:generate
    ```
-5. Jalankan migrasi database:
+5. Run database migrations:
    ```bash
    yarn prisma:migrate:dev --name init
    ```
-6. Jalankan server:
+6. Start the server:
    ```bash
    yarn dev
    ```
-
-## Migrasi Data dari Appwrite
-1. Isi variabel `APPWRITE_*` di `.env`.
-2. Ekspor data jobs dari Appwrite:
-   ```bash
-   yarn migrate:appwrite:export
-   ```
-3. Impor hasil transformasi ke PostgreSQL:
-   ```bash
-   yarn migrate:appwrite:import
-   ```
+   
